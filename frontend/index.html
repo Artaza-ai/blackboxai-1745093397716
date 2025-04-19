@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brain Image Diagnosis Scan App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Brain Image Diagnosis Scan</h1>
+    <form id="uploadForm" class="flex flex-col space-y-4">
+      <input
+        type="file"
+        id="imageInput"
+        name="image"
+        accept="image/*"
+        class="border border-gray-300 rounded p-2"
+        required
+      />
+      <button
+        type="submit"
+        class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-300 flex items-center justify-center space-x-2"
+      >
+        <i class="fas fa-upload"></i>
+        <span>Upload and Diagnose</span>
+      </button>
+    </form>
+    <div id="result" class="mt-6 p-4 bg-gray-50 rounded border border-gray-200 hidden">
+      <h2 class="text-xl font-semibold mb-2 text-gray-700">Diagnosis Result:</h2>
+      <p id="diagnosisText" class="text-gray-800"></p>
+      <p id="confidenceText" class="text-gray-600 mt-1"></p>
+    </div>
+  </div>
+
+  <script>
+    const uploadForm = document.getElementById('uploadForm');
+    const resultDiv = document.getElementById('result');
+    const diagnosisText = document.getElementById('diagnosisText');
+    const confidenceText = document.getElementById('confidenceText');
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('imageInput');
+      if (!fileInput.files.length) {
+        alert('Please select an image file.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+
+      try {
+        const response = await fetch('http://localhost:5000/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const data = await response.json();
+        diagnosisText.textContent = data.diagnosis || 'No diagnosis available';
+        confidenceText.textContent = data.confidence ? `Confidence: ${data.confidence}` : '';
+        resultDiv.classList.remove('hidden');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
