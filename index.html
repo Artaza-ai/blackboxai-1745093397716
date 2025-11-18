@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brain Image Diagnosis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 0.75rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .upload-area:hover {
+      border-color: #667eea;
+      background-color: #f3f4f6;
+    }
+    .upload-area.dragging {
+      border-color: #667eea;
+      background-color: #ede9fe;
+    }
+    .upload-icon {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 0.5rem;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .result {
+      background: #f3f4f6;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .result.show {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .result h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 0.75rem;
+    }
+    .result p {
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      color: #667eea;
+      margin-top: 1rem;
+    }
+    .loading.show {
+      display: block;
+    }
+    .spinner {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 3px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Brain Image Diagnosis</h1>
+
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">
+          <i class="fas fa-brain"></i>
+        </div>
+        <p style="color: #6b7280; margin-bottom: 0.5rem;">Drag and drop your image here</p>
+        <p style="color: #9ca3af; font-size: 0.875rem;">or click to browse</p>
+        <input type="file" id="fileInput" accept="image/*" />
+      </div>
+
+      <button class="btn" id="uploadBtn">Analyze Image</button>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p style="margin-top: 0.75rem;">Analyzing...</p>
+      </div>
+
+      <div class="result" id="result">
+        <h2>Diagnosis Result</h2>
+        <p id="diagnosisText"></p>
+        <p id="confidenceText" style="margin-top: 0.75rem;"></p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    const diagnosisText = document.getElementById('diagnosisText');
+    const confidenceText = document.getElementById('confidenceText');
+
+    let selectedFile = null;
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragging');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragging');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragging');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect();
+      }
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect() {
+      if (fileInput.files.length > 0) {
+        selectedFile = fileInput.files[0];
+        uploadArea.style.borderColor = '#667eea';
+        uploadArea.style.backgroundColor = '#f3f4f6';
+      }
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFile) {
+        alert('Please select an image first');
+        return;
+      }
+
+      loading.classList.add('show');
+      result.classList.remove('show');
+      uploadBtn.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+
+        const response = await fetch('/.netlify/functions/diagnose', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          diagnosisText.textContent = data.diagnosis || 'Analysis complete';
+          confidenceText.textContent = data.confidence ? `Confidence: ${data.confidence}` : '';
+          result.classList.add('show');
+        } else {
+          diagnosisText.textContent = 'Error: ' + (data.error || 'Unknown error');
+          result.classList.add('show');
+        }
+      } catch (error) {
+        diagnosisText.textContent = 'Error: ' + error.message;
+        result.classList.add('show');
+      } finally {
+        loading.classList.remove('show');
+        uploadBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
